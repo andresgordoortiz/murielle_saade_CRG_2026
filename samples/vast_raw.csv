@@ -1,0 +1,10 @@
+sample,fastq_1,fastq_2,type,group
+WT_1,WT_1/WT_1_1.fq.gz,WT_1/WT_1_2.fq.gz,paired,WT
+WT_2,WT_2/WT_2_1.fq.gz,WT_2/WT_2_2.fq.gz,paired,WT
+WT_3,WT_3/WT_3_1.fq.gz,WT_3/WT_3_2.fq.gz,paired,WT
+KO3_1,KO3_1/KO3_1_1.fq.gz,KO3_1/KO3_1_2.fq.gz,paired,KO3
+KO3_2,KO3_2/KO3_2_1.fq.gz,KO3_2/KO3_2_2.fq.gz,paired,KO3
+KO3_3,KO3_3/KO3_3_1.fq.gz,KO3_3/KO3_3_2.fq.gz,paired,KO3
+KO25_1,KO25_1/KO25_1_1.fq.gz,KO25_1/KO25_1_2.fq.gz,paired,KO25
+KO25_2,KO25_2/KO25_2_1.fq.gz,KO25_2/KO25_2_2.fq.gz,paired,KO25
+KO25_3,KO25_3/KO25_3_1.fq.gz,KO25_3/KO25_3_2.fq.gz,paired,KO25

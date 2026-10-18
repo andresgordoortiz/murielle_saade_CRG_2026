@@ -1,0 +1,16 @@
+.pixi/
+work/
+.nextflow*
+qc/subsets/
+qc/references/
+qc/species_alignments/
+__pycache__/
+results/
+runs/
+logs/
+*.fq.gz
+*.fastq.gz
+qc/**/*.log*
+qc/*.stdout
+qc/*_resolved.config
+samples/vast_trimmed.csv
