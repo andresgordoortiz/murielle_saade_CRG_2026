@@ -11,7 +11,7 @@ stage=${1:?Usage: run_pipeline.sbatch rnaseq|vast PROJECT_DIR}
 PROJECT_DIR=${2:?Missing project directory}
 cd "$PROJECT_DIR"
 source config/cluster.env
-export RAW_DIR VAST_PIPELINE VASTDB SCRATCH_DIR REFERENCE_DIR
+export PROJECT_DIR RAW_DIR VAST_PIPELINE VASTDB SCRATCH_DIR REFERENCE_DIR
 mkdir -p "$SCRATCH_DIR" logs results runs
 
 module load Nextflow
@@ -22,6 +22,7 @@ singularity --version
 module load Python/3.12.3-GCCcore-13.2.0
 python3 -I -c 'import csv, pathlib, sys; print("Using Python:", sys.executable)'
 export NXF_VER=25.10.4
+export TERM=dumb
 export NXF_JVM_ARGS='-Xms1g -Xmx5g'
 export NXF_OPTS='-XX:ActiveProcessorCount=2'
 export SLURM_CONF=${SLURM_CONF:-/etc/slurm/slurm.conf}
@@ -55,7 +56,7 @@ case "$stage" in
         python3 -I scripts/prepare_vast_workflow.py "$VAST_PIPELINE/main.nf" "$PROJECT_DIR/runs/vast/main.nf"
         cd runs/vast
         exec nextflow run "$PROJECT_DIR/runs/vast/main.nf" \
-            -c "$VAST_PIPELINE/nextflow.config" -c "$PROJECT_DIR/config/crg.config" \
+            -c "$PROJECT_DIR/config/vast.config" -c "$PROJECT_DIR/config/crg.config" \
             --sample_csv "$PROJECT_DIR/samples/vast_trimmed.csv" \
             --data_dir "$PROJECT_DIR/results/rnaseq/fastp" \
             --vastdb_path "$VASTDB" --species hg38 \

@@ -9,6 +9,8 @@ git pull
 bash scripts/submit.sh
 ```
 
+To rerun only VAST using completed RNA-seq trimmed reads: `bash scripts/submit.sh vast`.
+
 The submitter uses Bash only. Paste the Seqera token at the hidden prompt; an existing `TOWER_ACCESS_TOKEN` skips the prompt. Jobs use the system `singularity` executable and load `Nextflow`, `Java` and `Python/3.12.3-GCCcore-13.2.0`.
 
 Inputs and paths:

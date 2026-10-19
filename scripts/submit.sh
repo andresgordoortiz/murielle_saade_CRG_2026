@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
+stage=${1:-all}
+case "$stage" in
+    all|vast) ;;
+    *) echo 'Usage: bash scripts/submit.sh [all|vast]' >&2; exit 2 ;;
+esac
 # Supply TOWER_ACCESS_TOKEN in the environment, or paste it at the hidden prompt.
 if [[ -z ${TOWER_ACCESS_TOKEN:-} ]]; then
     read -r -s -p 'Seqera access token: ' TOWER_ACCESS_TOKEN
@@ -29,8 +34,13 @@ while IFS=$'\t' read -r sample condition replicate; do
     done
 done < samples/metadata.tsv
 mkdir -p logs
-rna_job=$(sbatch --parsable --export=ALL --job-name=murielle_rnaseq \
-    --output="$project/logs/rnaseq.%j.log" scripts/run_pipeline.sbatch rnaseq "$project")
-vast_job=$(sbatch --parsable --export=ALL --job-name=murielle_vast --dependency="afterok:${rna_job%%;*}" \
+dependency=()
+if [[ $stage == all ]]; then
+    rna_job=$(sbatch --parsable --export=ALL --job-name=murielle_rnaseq \
+        --output="$project/logs/rnaseq.%j.log" scripts/run_pipeline.sbatch rnaseq "$project")
+    dependency=(--dependency="afterok:${rna_job%%;*}")
+    printf 'RNA-seq: %s\n' "$rna_job"
+fi
+vast_job=$(sbatch --parsable --export=ALL --job-name=murielle_vast "${dependency[@]}" \
     --output="$project/logs/vast.%j.log" scripts/run_pipeline.sbatch vast "$project")
-printf 'RNA-seq: %s\nVAST: %s\n' "$rna_job" "$vast_job"
+printf 'VAST: %s\n' "$vast_job"
