@@ -19,14 +19,15 @@ class ClusterSubmission(unittest.TestCase):
             for name in ("scripts", "config"):
                 shutil.copytree(repo / name, project / name)
             raw, vast = project / "raw", project / "vast"
+            raw.mkdir()
             vast.mkdir()
             (vast / "main.nf").write_text("workflow {}\n")
+            (vast / "nextflow.config").write_text("process.executor = 'slurm'\n")
             (project / "qc").mkdir()
             (project / "qc/SHA256SUMS.cluster").write_text("placeholder\n")
             for sample, _, _ in SAMPLES:
-                (raw / sample).mkdir(parents=True)
                 for mate in (1, 2):
-                    (raw / sample / f"{sample}_{mate}.fq.gz").write_bytes(b"test")
+                    (raw / f"{sample}_{mate}.fq.gz").write_bytes(b"test")
             executable = project / "bin"
             executable.mkdir()
             sbatch = executable / "sbatch"

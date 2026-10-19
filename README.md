@@ -22,58 +22,67 @@ Requested products:
 
 These are **expression count tables for DE**, not statistical DE results. nf-core/rnaseq does not test WT versus KO. For later DESeq2 analysis, import Salmon estimates with tximport and length offsets, or use the length-scaled counts as documented by nf-core. TPM is not a count input. [nf-core outputs](https://nf-co.re/rnaseq/3.27.0/docs/output/)
 
-## Put the files on CRG
+## Cluster layout and submission
 
-Keep the observed sample subdirectories:
+The cluster checkout is `/users/aaljord/agordo/murielle_saade_CRG_2026`. Raw reads are **flat files inside this repo's `raw_data_2026/` directory**, as uploaded:
 
 ```text
-/users/aaljord/agordo/murielle_saade_collab/raw_data_2026/
-  WT_1/WT_1_1.fq.gz
-  WT_1/WT_1_2.fq.gz
-  ...
-  KO25_3/KO25_3_2.fq.gz
+murielle_saade_CRG_2026/
+  raw_data_2026/
+    WT_1_1.fq.gz
+    WT_1_2.fq.gz
+    ...
+    KO25_3_2.fq.gz
+    SHA256SUMS.flat
+  samples/
+    rnaseq.csv                 # nf-core input: sample, mates, strandedness
+    metadata.tsv               # sample, condition, replicate
+    vast_raw.csv               # VAST input for the flat raw files
+    vast_trimmed.csv           # generated after nf-core; the default VAST input
+  results/
+    rnaseq/                    # expression counts, alignments and RNA-seq QC
+    vast/
+      inclusion_tables/        # main VAST inclusion table
+      vast_alignment/
+  logs/                        # Slurm driver logs
+  runs/                        # separate Nextflow state for each pipeline
+  references/                  # downloaded GRCh38 genome/GTF
 ```
 
-For example, from this PC, with `CRG_HOST` set to your SSH destination:
+Raw reads, downloaded references, results and runtime state are ignored by Git. They remain on the cluster. The committed [rnaseq samplesheet](samples/rnaseq.csv) contains all nine samples with absolute paths to the uploaded flat FASTQs; [metadata.tsv](samples/metadata.tsv) records the WT/KO3/KO25 conditions and replicate numbers. The RNA-seq pipeline uses `rnaseq.csv`; the separate metadata table is for downstream DE analysis.
+
+From your existing cluster checkout, after pushing/pulling these changes:
 
 ```bash
-rsync -a --info=progress2 /home/andgortiz/Downloads/Murielle_Saade_API/ \
-  "$CRG_HOST:/users/aaljord/agordo/murielle_saade_collab/raw_data_2026/"
-```
-
-The transfer has no deletion flag. Do not put the raw reads inside this Git repository.
-
-## Submit on CRG
-
-After pushing this repository to GitHub, clone it on CRG alongside the raw-data folder:
-
-```bash
-mkdir -p /users/aaljord/agordo/murielle_saade_collab
-git clone https://github.com/andresgordoortiz/murielle_saade_CRG_2026.git \
-  /users/aaljord/agordo/murielle_saade_collab/analysis_2026
-cd /users/aaljord/agordo/murielle_saade_collab/analysis_2026
-```
-
-The analysis clone and `raw_data_2026` are sibling directories. The existing VAST workflow stays at `/users/aaljord/agordo/git/vast-tools_nextflow`; do not clone this analysis project over it. Pixi is only needed for optional diagnostic reproduction, not to submit either analysis pipeline on CRG.
-
-Review [config/cluster.env](config/cluster.env). Defaults are:
-
-| Purpose | Location |
-|---|---|
-| Raw FASTQs | `/users/aaljord/agordo/murielle_saade_collab/raw_data_2026` |
-| Existing VAST workflow clone | `/users/aaljord/agordo/git/vast-tools_nextflow` |
-| VASTDB parent | `/users/aaljord/agordo/VASTDB` |
-| Genome/GTF downloads | `/users/aaljord/agordo/murielle_saade_collab/references/ensembl115_GRCh38` |
-| Temporary work and container cache | `/nfs/scratch01/aaljord/agordo/murielle_saade_2026` |
-
-The reference stage downloads approximately 1 GB of genome/GTF and the approximately 5 GB Hs2 archive if Hs2 is absent. Allow substantially more scratch space for cleaned reads, alignments, indexes and Nextflow work; availability was not checked on CRG. Keep work directories until results are verified so `-resume` can reuse successful tasks.
-
-```bash
-cd /users/aaljord/agordo/murielle_saade_collab/analysis_2026
+git pull
 bash scripts/submit.sh
 ```
 
-The RNA-seq job verifies all 18 transferred SHA256s before processing. Sample sheets are regenerated against the cluster files and checked for missing/empty mates. No glob is used to infer replicate groups. `logs/` contains driver logs; each pipeline keeps its own Nextflow state in `runs/rnaseq` or `runs/vast`.
+For a fresh checkout, clone normally and submit without renaming the repository:
+
+```bash
+git clone https://github.com/andresgordoortiz/murielle_saade_CRG_2026.git
+bash murielle_saade_CRG_2026/scripts/submit.sh
+```
+
+The script finds the repository directory itself. The existing VAST workflow remains at `/users/aaljord/agordo/git/vast-tools_nextflow`. Pixi is only needed for optional diagnostic reproduction, not to submit either analysis pipeline.
+
+Defaults in [config/cluster.env](config/cluster.env):
+
+| Purpose | Location |
+|---|---|
+| Raw FASTQs | `<repo>/raw_data_2026` |
+| Existing VAST workflow clone | `/users/aaljord/agordo/git/vast-tools_nextflow` |
+| VASTDB parent | `/users/aaljord/agordo/VASTDB` |
+| Genome/GTF downloads | `<repo>/references/ensembl115_GRCh38` |
+| Scratch root | `/nfs/scratch01/aaljord/agordo/` |
+| RNA-seq work | `/nfs/scratch01/aaljord/agordo/murielle_saade_CRG_2026/work_rnaseq` |
+| VAST work | `/nfs/scratch01/aaljord/agordo/murielle_saade_CRG_2026/work_vast` |
+| Singularity image cache | `/nfs/scratch01/aaljord/agordo/singularity` |
+
+The reference stage downloads approximately 1 GB of genome/GTF and the approximately 5 GB Hs2 archive if Hs2 is absent. Allow substantially more scratch space for cleaned reads, alignments, indexes and Nextflow work; availability was not checked on CRG. Keep work directories until results are verified so `-resume` can reuse successful tasks.
+
+The RNA-seq job verifies all 18 transferred SHA256s against the committed, flat-filename manifest before processing. Sample sheets are regenerated against the cluster files and checked for missing/empty mates. No glob is used to infer replicate groups. `logs/` contains driver logs; each pipeline keeps its own Nextflow state in `runs/rnaseq` or `runs/vast`.
 
 The driver requests 6 GB on `genoa64` with QOS `pipelines`, matching your local workflow wrapper. Tasks use Slurm with the wrapper's time-dependent QOS mapping, at most 16 CPUs / 128 GB / 7 days per task. The reference download job uses an 8-hour `normal` allocation. Modules are `Nextflow`, `Java` and `Singularity/4.0.2`; `NXF_VER=25.10.4` pins the Nextflow engine required by rnaseq 3.27.0. These site settings come from the local VAST clone; live module, QOS and account permissions were not queried.
 
@@ -97,7 +106,15 @@ These commands reuse the separate pipeline caches through `-resume`. Cancel any 
 - **Keep standard alignment and RNA QC:** STAR junction-aware alignment, Salmon gene/transcript estimates, FastQC, RSeQC, Qualimap, duplication marking and DESeq2 sample QC. StringTie and bigWig generation are skipped because the requested products are count and inclusion tables. No downsampling, rRNA removal, or biological-replicate merging is requested.
 - **Skip VAST compare/betAS/MATT:** the requested endpoint is the inclusion table. The inspected VAST workflow incorrectly connects paired-end sequencing to `vast-tools compare --paired`, which means matched biological replicates. Disabling comparisons avoids that error for these independent samples. Revisit the upstream comparison code before using it here.
 
-The inspected VAST clone was at commit `866fe0f544489322b59d04bad0c258657acffa0b`. It is not modified or copied into this repo. Its containers include mutable `latest` tags; record the cluster clone revision and actual container identities when running the final analysis.
+## VAST human-data compatibility
+
+The inspected VAST clone, commit `866fe0f544489322b59d04bad0c258657acffa0b`, has mouse-only `ENSMUSG` filters in both alignment branches and the combine stage. Those filters would reject human `ENSG` junction records. A preview alone did not detect this because it does not run process scripts.
+
+The VAST launcher now generates `runs/vast/main.nf` from your shared clone using `scripts/prepare_vast_workflow.py`. Its junction filters accept Ensembl gene IDs including human `ENSG` and mouse `ENSMUSG`. Zero grep matches are treated as zero records; read/regex errors still fail the task. Corrupt-line filtering stays enabled. The working copy uses your clone's original `nextflow.config`, with this project's CRG configuration layered over it; the shared clone is not edited. The active stages do not depend on relative files from the clone.
+
+The checked nf-core 3.27.0 fastp module publishes `<sample>_R1.fastp.fastq.gz` and `<sample>_R2.fastp.fastq.gz` under `results/rnaseq/fastp`. All eighteen cleaned files are checked before generating `samples/vast_trimmed.csv` and launching VAST with `--skip_trimming`. The inclusion table is published to `results/vast/inclusion_tables/murielle_saade_2026_INCLUSION_LEVELS_FULL-hg38.tab`.
+
+Small tests cover the flat layout, missing mates, Slurm dependencies, both launch commands, scratch/result paths, shared trimmed inputs, and the human/empty-file junction filters. Actual Slurm/container execution remains to be verified on CRG. The upstream containers include mutable `latest` tags; record the clone revision and actual container identities when running the final analysis.
 
 ## Reproduce local inspection
 

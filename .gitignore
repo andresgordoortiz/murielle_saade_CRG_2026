@@ -6,6 +6,8 @@ qc/references/
 qc/species_alignments/
 __pycache__/
 results/
+raw_data_2026/
+references/
 runs/
 logs/
 *.fq.gz

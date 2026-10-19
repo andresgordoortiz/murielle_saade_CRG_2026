@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate sheets for the observed nine samples; require intact directory layout."""
+"""Generate sheets for the nine samples in the cluster's flat FASTQ directory."""
 import argparse
 import csv
 from pathlib import Path
@@ -9,7 +9,7 @@ SAMPLES = [(f"{group}_{rep}", group, rep) for group in ("WT", "KO3", "KO25") for
 
 def make_samplesheets(raw, outdir, trimmed=None):
     raw = raw.resolve()
-    raw_pairs = [[raw / sample / f"{sample}_{mate}.fq.gz" for mate in (1, 2)]
+    raw_pairs = [[raw / f"{sample}_{mate}.fq.gz" for mate in (1, 2)]
                  for sample, _, _ in SAMPLES]
     trimmed_pairs = ([[trimmed.resolve() / f"{sample}_R{mate}.fastp.fastq.gz" for mate in (1, 2)]
                       for sample, _, _ in SAMPLES] if trimmed else [])
@@ -19,22 +19,22 @@ def make_samplesheets(raw, outdir, trimmed=None):
                 raise ValueError(f"Missing or empty FASTQ: {path}")
     outdir.mkdir(parents=True, exist_ok=True)
     with (outdir / "rnaseq.csv").open("w") as out:
-        writer = csv.writer(out)
+        writer = csv.writer(out, lineterminator="\n")
         writer.writerow(["sample", "fastq_1", "fastq_2", "strandedness"])
         for (sample, _, _), pair in zip(SAMPLES, raw_pairs):
             writer.writerow([sample, *pair, "auto"])
     with (outdir / "vast_raw.csv").open("w") as out:
-        writer = csv.writer(out)
+        writer = csv.writer(out, lineterminator="\n")
         writer.writerow(["sample", "fastq_1", "fastq_2", "type", "group"])
         for (sample, group, _), pair in zip(SAMPLES, raw_pairs):
             writer.writerow([sample, *(p.relative_to(raw) for p in pair), "paired", group])
     with (outdir / "metadata.tsv").open("w") as out:
-        writer = csv.writer(out, delimiter="\t")
+        writer = csv.writer(out, delimiter="\t", lineterminator="\n")
         writer.writerow(["sample", "condition", "replicate"])
         writer.writerows(SAMPLES)
     if trimmed:
         with (outdir / "vast_trimmed.csv").open("w") as out:
-            writer = csv.writer(out)
+            writer = csv.writer(out, lineterminator="\n")
             writer.writerow(["sample", "fastq_1", "fastq_2", "type", "group"])
             for (sample, group, _), pair in zip(SAMPLES, trimmed_pairs):
                 writer.writerow([sample, *pair, "paired", group])

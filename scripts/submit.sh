@@ -5,6 +5,7 @@ project=$PWD
 source config/cluster.env
 export RAW_DIR VAST_PIPELINE VASTDB SCRATCH_DIR REFERENCE_DIR
 test -s "$VAST_PIPELINE/main.nf"
+test -s "$VAST_PIPELINE/nextflow.config"
 test -s qc/SHA256SUMS.cluster
 python3 scripts/make_samplesheets.py "$RAW_DIR" "$project/samples"
 mkdir -p logs

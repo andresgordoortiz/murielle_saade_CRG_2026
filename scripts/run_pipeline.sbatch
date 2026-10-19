@@ -41,22 +41,23 @@ case "$stage" in
             --fasta "$REFERENCE_DIR/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz" \
             --gtf "$REFERENCE_DIR/Homo_sapiens.GRCh38.115.gtf.gz" \
             --outdir "$PROJECT_DIR/results/rnaseq" \
-            -work-dir "$SCRATCH_DIR/work_rnaseq" -resume -ansi-log false
+            -work-dir "$SCRATCH_DIR/murielle_saade_CRG_2026/work_rnaseq" -resume -ansi-log false
         ;;
     vast)
         test -s "$VAST_PIPELINE/main.nf"
         test -d "$VASTDB/Hs2"
         python3 scripts/make_samplesheets.py "$RAW_DIR" "$PROJECT_DIR/samples" \
             --trimmed "$PROJECT_DIR/results/rnaseq/fastp"
+        python3 scripts/prepare_vast_workflow.py "$VAST_PIPELINE/main.nf" "$PROJECT_DIR/runs/vast/main.nf"
         cd runs/vast
-        exec nextflow run "$VAST_PIPELINE/main.nf" \
+        exec nextflow run "$PROJECT_DIR/runs/vast/main.nf" \
             -c "$VAST_PIPELINE/nextflow.config" -c "$PROJECT_DIR/config/crg.config" \
             --sample_csv "$PROJECT_DIR/samples/vast_trimmed.csv" \
             --data_dir "$PROJECT_DIR/results/rnaseq/fastp" \
             --vastdb_path "$VASTDB" --species hg38 \
             --project_name murielle_saade_2026 --outdir "$PROJECT_DIR/results/vast" \
             --skip_trimming --skip_fastqc --skip_compare --skip_matt --skip_betas \
-            -work-dir "$SCRATCH_DIR/work_vast" -resume -ansi-log false
+            -work-dir "$SCRATCH_DIR/murielle_saade_CRG_2026/work_vast" -resume -ansi-log false
         ;;
     *) echo "Unknown stage: $stage" >&2; exit 2 ;;
 esac

@@ -7,7 +7,7 @@
 ## What was checked
 
 - Inventory: **18 compressed FASTQs**, nine sample pairs, **51,699,434,353 bytes** total (about 48.2 GiB), under `Downloads/Murielle_Saade_API`.
-- All **18 SHA256s match the supplied local `SHA256SUMS.flat` manifest**. The verified manifest with sample subdirectories is saved as `SHA256SUMS.cluster`. This verifies consistency with that manifest, not independent provider authenticity.
+- All **18 SHA256s match the supplied local `SHA256SUMS.flat` manifest**. The verified manifest is saved as `SHA256SUMS.cluster`; its filenames were flattened on 19 October to match the uploaded cluster layout. This verifies consistency with that manifest, not independent provider authenticity.
 - The **first 100,000 pairs per sample** were read, validated and compared by cluster ID: **900,000 matching pairs**, with `/1` and `/2` suffixes and 150 bases in both mates. Mate order was not compared across the entire datasets.
 - fastp inspected those 100,000 pairs per sample, with paired adapter detection and overlap-based trimming evaluated in reports only. **No raw files were modified and no trimmed reads were written locally.**
 - Species screening aligned the same subsets competitively to Ensembl 115 human GRCh38 and mouse GRCm39 cDNA + ncRNA, using minimap2 short-read mode. Human assignments dominate every sample. Mouse is only a diagnostic comparator; its assembly is not an analysis reference.
@@ -62,3 +62,9 @@ nf-core/rnaseq **3.27.0** runs STAR + Salmon with fastp and saves trimmed paired
 Evidence files: `pairing.json`, `inventory.tsv`, `SHA256SUMS.cluster`, `species_screen.tsv`, `seqkit_stats.partial.tsv`, and `fastp/*.json` / `*.html`. Nextflow preview and configuration logs are also retained. Large diagnostic reads, references and BAMs are ignored by Git.
 
 Not checked: live CRG access, free space, module/QOS permissions, container execution, all-file read counts/CRC scans, final alignment metrics, inclusion-table coverage or DE results. The scripts are prepared for submission; they have not been submitted to CRG.
+
+## Deployment update — 19 October 2026
+
+The cluster raw files are flat under `/users/aaljord/agordo/murielle_saade_CRG_2026/raw_data_2026`. The committed nf-core and VAST sample sheets and checksum manifest now use that layout. Final outputs stay in `results/rnaseq` and `results/vast` inside the checkout; work directories are below `/nfs/scratch01/aaljord/agordo/murielle_saade_CRG_2026/`.
+
+A further source review found mouse-only `ENSMUSG` junction filters in the shared VAST workflow. The launcher now makes a working copy with filters that retain human `ENSG` records and handle empty junction files without masking genuine grep errors. The original clone remains unchanged. These fixes were not exercised by the earlier preview. See the current README and tests for deployment validation; no heavy raw-read scans were repeated locally.

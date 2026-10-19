@@ -93,7 +93,7 @@ def main():
         verified = list(pool.map(checksum, [(p, entries[p.name]) for p in all_files]))
     with (args.outdir / "SHA256SUMS.cluster").open("w") as handle:
         for path, digest in verified:
-            handle.write(f"{digest}  {path.relative_to(args.raw)}\n")
+            handle.write(f"{digest}  {path.name}\n")
     with (args.outdir / "inventory.tsv").open("w") as handle:
         writer = csv.writer(handle, delimiter="\t")
         writer.writerow(["sample", "mate", "bytes", "relative_path", "sha256"])
