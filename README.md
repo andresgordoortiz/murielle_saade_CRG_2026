@@ -9,7 +9,7 @@ git pull
 bash scripts/submit.sh
 ```
 
-The submitter uses Bash only. Paste the Seqera token at the hidden prompt; an existing `TOWER_ACCESS_TOKEN` skips the prompt. Jobs load `Nextflow`, `Java`, `Singularity/4.0.2` and `Python`.
+The submitter uses Bash only. Paste the Seqera token at the hidden prompt; an existing `TOWER_ACCESS_TOKEN` skips the prompt. Jobs use the system `singularity` executable and load `Nextflow`, `Java` and `Python/3.12.3-GCCcore-13.2.0`.
 
 Inputs and paths:
 
@@ -17,10 +17,11 @@ Inputs and paths:
 - Sample inputs: `samples/rnaseq.csv`, `samples/metadata.tsv` and `samples/SHA256SUMS`.
 - Existing VAST workflow: `/users/aaljord/agordo/git/vast-tools_nextflow`.
 - Existing database: `/users/aaljord/agordo/VASTDB/Hs2`. It is validated, **never downloaded**.
+- Existing genome/GTF: `references/ensembl115_GRCh38/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz` and `Homo_sapiens.GRCh38.115.gtf.gz`.
 - Work: `/nfs/scratch01/aaljord/agordo/murielle_saade_CRG_2026/work_rnaseq` and `work_vast`.
 - Override site paths in `config/cluster.env` if necessary.
 
-Submission queues reference preparation, nf-core/rnaseq 3.27.0, then VAST. Existing Ensembl FASTA/GTF files are reused. Failed jobs prevent their dependents from starting; cancel old pending jobs before submitting a replacement chain.
+Submission validates the existing Hs2, genome and GTF, prints their paths, then queues nf-core/rnaseq 3.27.0 and VAST. There is no reference-download job or download command. Missing files stop submission with their exact paths; change `REFERENCE_DIR` to use files stored elsewhere. Failed jobs prevent their dependents from starting; cancel old pending jobs before submitting a replacement chain.
 
 Outputs inside this repo:
 

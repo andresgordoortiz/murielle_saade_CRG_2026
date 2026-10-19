@@ -17,6 +17,7 @@ export RAW_DIR VAST_PIPELINE VASTDB SCRATCH_DIR REFERENCE_DIR
 test -s "$VAST_PIPELINE/main.nf"
 test -s "$VAST_PIPELINE/nextflow.config"
 test -s samples/SHA256SUMS
+bash scripts/check_references.sh
 while IFS=$'\t' read -r sample condition replicate; do
     [[ $sample == sample ]] && continue
     for mate in 1 2; do
@@ -28,10 +29,8 @@ while IFS=$'\t' read -r sample condition replicate; do
     done
 done < samples/metadata.tsv
 mkdir -p logs
-ref_job=$(sbatch --parsable --export=ALL --job-name=murielle_refs --qos=normal --time=08:00:00 \
-    --output="$project/logs/references.%j.log" scripts/run_pipeline.sbatch references "$project")
-rna_job=$(sbatch --parsable --export=ALL --job-name=murielle_rnaseq --dependency="afterok:${ref_job%%;*}" \
+rna_job=$(sbatch --parsable --export=ALL --job-name=murielle_rnaseq \
     --output="$project/logs/rnaseq.%j.log" scripts/run_pipeline.sbatch rnaseq "$project")
 vast_job=$(sbatch --parsable --export=ALL --job-name=murielle_vast --dependency="afterok:${rna_job%%;*}" \
     --output="$project/logs/vast.%j.log" scripts/run_pipeline.sbatch vast "$project")
-printf 'References: %s\nRNA-seq: %s\nVAST: %s\n' "$ref_job" "$rna_job" "$vast_job"
+printf 'RNA-seq: %s\nVAST: %s\n' "$rna_job" "$vast_job"

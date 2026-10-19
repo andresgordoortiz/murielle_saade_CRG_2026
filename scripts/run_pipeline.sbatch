@@ -7,21 +7,20 @@
 #SBATCH --no-requeue
 
 set -euo pipefail
-stage=${1:?Usage: run_pipeline.sbatch references|rnaseq|vast PROJECT_DIR}
+stage=${1:?Usage: run_pipeline.sbatch rnaseq|vast PROJECT_DIR}
 PROJECT_DIR=${2:?Missing project directory}
 cd "$PROJECT_DIR"
 source config/cluster.env
 export RAW_DIR VAST_PIPELINE VASTDB SCRATCH_DIR REFERENCE_DIR
 mkdir -p "$SCRATCH_DIR" logs results runs
 
-if [[ $stage == references ]]; then
-    exec bash scripts/prepare_references.sh
-fi
-
 module load Nextflow
 module load Java
-module load Singularity/4.0.2
-module load Python
+# CRG provides Singularity as a system executable, not a versioned module.
+command -v singularity >/dev/null
+singularity --version
+module load Python/3.12.3-GCCcore-13.2.0
+python3 -I -c 'import csv, pathlib, sys; print("Using Python:", sys.executable)'
 export NXF_VER=25.10.4
 export NXF_JVM_ARGS='-Xms1g -Xmx5g'
 export NXF_OPTS='-XX:ActiveProcessorCount=2'
