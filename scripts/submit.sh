@@ -16,7 +16,7 @@ source config/cluster.env
 export RAW_DIR VAST_PIPELINE VASTDB SCRATCH_DIR REFERENCE_DIR
 test -s "$VAST_PIPELINE/main.nf"
 test -s "$VAST_PIPELINE/nextflow.config"
-test -s qc/SHA256SUMS.cluster
+test -s samples/SHA256SUMS
 while IFS=$'\t' read -r sample condition replicate; do
     [[ $sample == sample ]] && continue
     for mate in 1 2; do

@@ -23,11 +23,6 @@ def make_samplesheets(raw, outdir, trimmed=None):
         writer.writerow(["sample", "fastq_1", "fastq_2", "strandedness"])
         for (sample, _, _), pair in zip(SAMPLES, raw_pairs):
             writer.writerow([sample, *pair, "auto"])
-    with (outdir / "vast_raw.csv").open("w") as out:
-        writer = csv.writer(out, lineterminator="\n")
-        writer.writerow(["sample", "fastq_1", "fastq_2", "type", "group"])
-        for (sample, group, _), pair in zip(SAMPLES, raw_pairs):
-            writer.writerow([sample, *(p.relative_to(raw) for p in pair), "paired", group])
     with (outdir / "metadata.tsv").open("w") as out:
         writer = csv.writer(out, delimiter="\t", lineterminator="\n")
         writer.writerow(["sample", "condition", "replicate"])

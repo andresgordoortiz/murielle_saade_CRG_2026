@@ -36,7 +36,7 @@ fi
 
 case "$stage" in
     rnaseq)
-        (cd "$RAW_DIR" && sha256sum -c "$PROJECT_DIR/qc/SHA256SUMS.cluster")
+        (cd "$RAW_DIR" && sha256sum -c "$PROJECT_DIR/samples/SHA256SUMS")
         python3 -I scripts/make_samplesheets.py "$RAW_DIR" "$PROJECT_DIR/samples"
         cd runs/rnaseq
         exec nextflow run nf-core/rnaseq -r 3.27.0 \
