@@ -42,6 +42,7 @@ class PipelinePaths(unittest.TestCase):
                 "import csv,json,os,sys\n"
                 "from pathlib import Path\n"
                 "args=sys.argv[1:]\n"
+                "assert os.environ.get('TOWER_ACCESS_TOKEN') == 'dummy-test-token'\n"
                 "def value(flag): return args[args.index(flag)+1]\n"
                 "out=Path(value('--outdir'))\n"
                 "if '--input' in args:\n"
@@ -55,6 +56,7 @@ class PipelinePaths(unittest.TestCase):
                 path.chmod(0o755)
             log = project / "command.json"
             env = dict(os.environ, VAST_PIPELINE=str(vast), VASTDB=str(db),
+                       TOWER_ACCESS_TOKEN="dummy-test-token",
                        SCRATCH_DIR=str(project / "scratch"), COMMAND_LOG=str(log),
                        PATH=f"{executable}:{os.environ['PATH']}")
             for name in ("RAW_DIR", "REFERENCE_DIR", "PROJECT_DIR"):
@@ -66,6 +68,8 @@ class PipelinePaths(unittest.TestCase):
                 def value(flag):
                     return args[args.index(flag) + 1]
                 self.assertEqual(value("--outdir"), str(project / "results" / stage))
+                self.assertIn("-with-tower", args)
+                self.assertNotIn("dummy-test-token", args)
                 self.assertEqual(value("-work-dir"), str(project / "scratch/murielle_saade_CRG_2026" / f"work_{stage}"))
                 if stage == "rnaseq":
                     self.assertIn("GRCh38", value("--fasta"))

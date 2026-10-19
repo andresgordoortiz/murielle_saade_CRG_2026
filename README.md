@@ -55,17 +55,21 @@ From your existing cluster checkout, after pushing/pulling these changes:
 
 ```bash
 git pull
-bash scripts/submit.sh
+bash run.sh
 ```
 
 For a fresh checkout, clone normally and submit without renaming the repository:
 
 ```bash
 git clone https://github.com/andresgordoortiz/murielle_saade_CRG_2026.git
-bash murielle_saade_CRG_2026/scripts/submit.sh
+bash murielle_saade_CRG_2026/run.sh
 ```
 
 The script finds the repository directory itself. The existing VAST workflow remains at `/users/aaljord/agordo/git/vast-tools_nextflow`. Pixi is only needed for optional diagnostic reproduction, not to submit either analysis pipeline.
+
+`run.sh` asks for your Seqera access token with terminal echo disabled. Paste the token at that prompt; it is not written to a file or placed in the Nextflow command arguments. Both pipeline jobs inherit `TOWER_ACCESS_TOKEN` through Slurm and enable monitoring with `-with-tower`. If the variable is already set in your environment, the prompt is skipped. An existing `TOWER_WORKSPACE_ID` or `TOWER_API_ENDPOINT` is also inherited when using an organization workspace or a custom Seqera server. This follows [Seqera's CLI monitoring setup](https://docs.seqera.io/platform-cloud/getting-started/deployment-options).
+
+For submission without Seqera monitoring, leave `TOWER_ACCESS_TOKEN` unset and call `bash scripts/submit.sh` directly. No token belongs in this repository's tracked files.
 
 Defaults in [config/cluster.env](config/cluster.env):
 

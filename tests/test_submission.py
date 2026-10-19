@@ -18,6 +18,7 @@ class ClusterSubmission(unittest.TestCase):
             project = Path(temp)
             for name in ("scripts", "config"):
                 shutil.copytree(repo / name, project / name)
+            shutil.copy2(repo / "run.sh", project / "run.sh")
             raw, vast = project / "raw", project / "vast"
             raw.mkdir()
             vast.mkdir()
@@ -35,6 +36,7 @@ class ClusterSubmission(unittest.TestCase):
                 f"#!{sys.executable}\n"
                 "import json,os,sys\n"
                 "from pathlib import Path\n"
+                "assert os.environ.get('TOWER_ACCESS_TOKEN') == os.environ['EXPECTED_TOKEN']\n"
                 "p=Path(os.environ['SUBMIT_LOG'])\n"
                 "rows=json.loads(p.read_text()) if p.exists() else []\n"
                 "rows.append(sys.argv[1:])\n"
@@ -44,15 +46,34 @@ class ClusterSubmission(unittest.TestCase):
             sbatch.chmod(0o755)
             log = project / "submitted.json"
             env = dict(os.environ, RAW_DIR=str(raw), VAST_PIPELINE=str(vast),
+                       EXPECTED_TOKEN="dummy-test-token",
                        SUBMIT_LOG=str(log), PATH=f"{executable}:{os.environ['PATH']}")
-            subprocess.run(["bash", str(project / "scripts/submit.sh")], env=env,
-                           check=True, capture_output=True, text=True)
+            env.pop("TOWER_ACCESS_TOKEN", None)
+            result = subprocess.run(["bash", str(project / "run.sh")], env=env,
+                                    input="dummy-test-token\n", check=True, capture_output=True, text=True)
+            self.assertNotIn("dummy-test-token", result.stdout + result.stderr)
             calls = json.loads(log.read_text())
             self.assertEqual(len(calls), 3)
             self.assertIn("--dependency=afterok:101", calls[1])
             self.assertIn("--dependency=afterok:102", calls[2])
             self.assertEqual([call[-2] for call in calls], ["references", "rnaseq", "vast"])
             self.assertTrue(all(call[-1] == str(project) for call in calls))
+            self.assertTrue(all("--export=ALL" in call for call in calls))
+            log.unlink()
+            env["TOWER_ACCESS_TOKEN"] = "dummy-test-token"
+            result = subprocess.run(["bash", str(project / "run.sh")], input="", env=env,
+                                    check=True, capture_output=True, text=True)
+            self.assertEqual(len(json.loads(log.read_text())), 3)
+            self.assertNotIn("dummy-test-token", result.stdout + result.stderr)
+
+    def test_empty_token_stops_before_submission(self):
+        repo = Path(__file__).resolve().parents[1]
+        env = dict(os.environ)
+        env.pop("TOWER_ACCESS_TOKEN", None)
+        result = subprocess.run(["bash", str(repo / "run.sh")], input="\n", env=env,
+                                capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("token is required", result.stderr)
 
 
 if __name__ == "__main__":

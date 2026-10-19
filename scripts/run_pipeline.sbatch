@@ -28,6 +28,10 @@ export SLURM_CONF=${SLURM_CONF:-/etc/slurm/slurm.conf}
 export SLURM_EXPORT_ENV=ALL
 export NXF_SINGULARITY_CACHEDIR=$SCRATCH_DIR/singularity
 mkdir -p "$NXF_SINGULARITY_CACHEDIR" "runs/$stage"
+seqera_args=()
+if [[ -n ${TOWER_ACCESS_TOKEN:-} ]]; then
+    seqera_args=(-with-tower)
+fi
 
 case "$stage" in
     rnaseq)
@@ -41,7 +45,7 @@ case "$stage" in
             --fasta "$REFERENCE_DIR/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz" \
             --gtf "$REFERENCE_DIR/Homo_sapiens.GRCh38.115.gtf.gz" \
             --outdir "$PROJECT_DIR/results/rnaseq" \
-            -work-dir "$SCRATCH_DIR/murielle_saade_CRG_2026/work_rnaseq" -resume -ansi-log false
+            -work-dir "$SCRATCH_DIR/murielle_saade_CRG_2026/work_rnaseq" -resume -ansi-log false "${seqera_args[@]}"
         ;;
     vast)
         test -s "$VAST_PIPELINE/main.nf"
@@ -57,7 +61,7 @@ case "$stage" in
             --vastdb_path "$VASTDB" --species hg38 \
             --project_name murielle_saade_2026 --outdir "$PROJECT_DIR/results/vast" \
             --skip_trimming --skip_fastqc --skip_compare --skip_matt --skip_betas \
-            -work-dir "$SCRATCH_DIR/murielle_saade_CRG_2026/work_vast" -resume -ansi-log false
+            -work-dir "$SCRATCH_DIR/murielle_saade_CRG_2026/work_vast" -resume -ansi-log false "${seqera_args[@]}"
         ;;
     *) echo "Unknown stage: $stage" >&2; exit 2 ;;
 esac
