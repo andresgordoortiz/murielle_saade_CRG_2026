@@ -16,9 +16,8 @@ class ClusterSubmission(unittest.TestCase):
         repo = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory(prefix="murielle launch ") as temp:
             project = Path(temp)
-            for name in ("scripts", "config"):
+            for name in ("scripts", "config", "samples"):
                 shutil.copytree(repo / name, project / name)
-            shutil.copy2(repo / "run.sh", project / "run.sh")
             raw, vast = project / "raw", project / "vast"
             raw.mkdir()
             vast.mkdir()
@@ -31,6 +30,9 @@ class ClusterSubmission(unittest.TestCase):
                     (raw / f"{sample}_{mate}.fq.gz").write_bytes(b"test")
             executable = project / "bin"
             executable.mkdir()
+            # The cluster login node has a broken Python; submission must never call it.
+            (executable / "python3").write_text("#!/bin/sh\necho 'broken login-node Python' >&2\nexit 97\n")
+            (executable / "python3").chmod(0o755)
             sbatch = executable / "sbatch"
             sbatch.write_text(
                 f"#!{sys.executable}\n"
@@ -49,7 +51,7 @@ class ClusterSubmission(unittest.TestCase):
                        EXPECTED_TOKEN="dummy-test-token",
                        SUBMIT_LOG=str(log), PATH=f"{executable}:{os.environ['PATH']}")
             env.pop("TOWER_ACCESS_TOKEN", None)
-            result = subprocess.run(["bash", str(project / "run.sh")], env=env,
+            result = subprocess.run(["bash", str(project / "scripts/submit.sh")], env=env,
                                     input="dummy-test-token\n", check=True, capture_output=True, text=True)
             self.assertNotIn("dummy-test-token", result.stdout + result.stderr)
             calls = json.loads(log.read_text())
@@ -61,16 +63,23 @@ class ClusterSubmission(unittest.TestCase):
             self.assertTrue(all("--export=ALL" in call for call in calls))
             log.unlink()
             env["TOWER_ACCESS_TOKEN"] = "dummy-test-token"
-            result = subprocess.run(["bash", str(project / "run.sh")], input="", env=env,
+            result = subprocess.run(["bash", str(project / "scripts/submit.sh")], input="", env=env,
                                     check=True, capture_output=True, text=True)
             self.assertEqual(len(json.loads(log.read_text())), 3)
             self.assertNotIn("dummy-test-token", result.stdout + result.stderr)
+            log.unlink()
+            (raw / "WT_1_2.fq.gz").unlink()
+            result = subprocess.run(["bash", str(project / "scripts/submit.sh")], input="", env=env,
+                                    capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Missing or empty FASTQ", result.stderr)
+            self.assertFalse(log.exists())
 
     def test_empty_token_stops_before_submission(self):
         repo = Path(__file__).resolve().parents[1]
         env = dict(os.environ)
         env.pop("TOWER_ACCESS_TOKEN", None)
-        result = subprocess.run(["bash", str(repo / "run.sh")], input="\n", env=env,
+        result = subprocess.run(["bash", str(repo / "scripts/submit.sh")], input="\n", env=env,
                                 capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("token is required", result.stderr)

@@ -21,6 +21,7 @@ fi
 module load Nextflow
 module load Java
 module load Singularity/4.0.2
+module load Python
 export NXF_VER=25.10.4
 export NXF_JVM_ARGS='-Xms1g -Xmx5g'
 export NXF_OPTS='-XX:ActiveProcessorCount=2'
@@ -36,7 +37,7 @@ fi
 case "$stage" in
     rnaseq)
         (cd "$RAW_DIR" && sha256sum -c "$PROJECT_DIR/qc/SHA256SUMS.cluster")
-        python3 scripts/make_samplesheets.py "$RAW_DIR" "$PROJECT_DIR/samples"
+        python3 -I scripts/make_samplesheets.py "$RAW_DIR" "$PROJECT_DIR/samples"
         cd runs/rnaseq
         exec nextflow run nf-core/rnaseq -r 3.27.0 \
             -profile singularity -c "$PROJECT_DIR/config/crg.config" \
@@ -50,9 +51,9 @@ case "$stage" in
     vast)
         test -s "$VAST_PIPELINE/main.nf"
         test -d "$VASTDB/Hs2"
-        python3 scripts/make_samplesheets.py "$RAW_DIR" "$PROJECT_DIR/samples" \
+        python3 -I scripts/make_samplesheets.py "$RAW_DIR" "$PROJECT_DIR/samples" \
             --trimmed "$PROJECT_DIR/results/rnaseq/fastp"
-        python3 scripts/prepare_vast_workflow.py "$VAST_PIPELINE/main.nf" "$PROJECT_DIR/runs/vast/main.nf"
+        python3 -I scripts/prepare_vast_workflow.py "$VAST_PIPELINE/main.nf" "$PROJECT_DIR/runs/vast/main.nf"
         cd runs/vast
         exec nextflow run "$PROJECT_DIR/runs/vast/main.nf" \
             -c "$VAST_PIPELINE/nextflow.config" -c "$PROJECT_DIR/config/crg.config" \

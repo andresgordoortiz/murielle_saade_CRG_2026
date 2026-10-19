@@ -36,7 +36,13 @@ class PipelinePaths(unittest.TestCase):
                         manifest.write(f"{digest}  {name}\n")
             executable = project / "bin"
             executable.mkdir()
-            (executable / "module").write_text("#!/bin/sh\nexit 0\n")
+            (executable / "module").write_text(
+                '#!/bin/sh\nif [ "$1" = load ] && [ "$2" = Python ]; then touch "$PYTHON_READY"; fi\n'
+            )
+            (executable / "python3").write_text(
+                '#!/bin/sh\n[ -f "$PYTHON_READY" ] || exit 97\n'
+                f'exec "{sys.executable}" "$@"\n'
+            )
             (executable / "nextflow").write_text(
                 f"#!{sys.executable}\n"
                 "import csv,json,os,sys\n"
@@ -57,11 +63,13 @@ class PipelinePaths(unittest.TestCase):
             log = project / "command.json"
             env = dict(os.environ, VAST_PIPELINE=str(vast), VASTDB=str(db),
                        TOWER_ACCESS_TOKEN="dummy-test-token",
+                       PYTHON_READY=str(project / "python-module-loaded"),
                        SCRATCH_DIR=str(project / "scratch"), COMMAND_LOG=str(log),
                        PATH=f"{executable}:{os.environ['PATH']}")
             for name in ("RAW_DIR", "REFERENCE_DIR", "PROJECT_DIR"):
                 env.pop(name, None)
             for stage in ("rnaseq", "vast"):
+                Path(env["PYTHON_READY"]).unlink(missing_ok=True)
                 subprocess.run(["bash", str(project / "scripts/run_pipeline.sbatch"), stage, str(project)],
                                env=env, check=True, capture_output=True, text=True)
                 args = json.loads(log.read_text())

@@ -55,21 +55,21 @@ From your existing cluster checkout, after pushing/pulling these changes:
 
 ```bash
 git pull
-bash run.sh
+bash scripts/submit.sh
 ```
 
 For a fresh checkout, clone normally and submit without renaming the repository:
 
 ```bash
 git clone https://github.com/andresgordoortiz/murielle_saade_CRG_2026.git
-bash murielle_saade_CRG_2026/run.sh
+bash murielle_saade_CRG_2026/scripts/submit.sh
 ```
 
 The script finds the repository directory itself. The existing VAST workflow remains at `/users/aaljord/agordo/git/vast-tools_nextflow`. Pixi is only needed for optional diagnostic reproduction, not to submit either analysis pipeline.
 
-`run.sh` asks for your Seqera access token with terminal echo disabled. Paste the token at that prompt; it is not written to a file or placed in the Nextflow command arguments. Both pipeline jobs inherit `TOWER_ACCESS_TOKEN` through Slurm and enable monitoring with `-with-tower`. If the variable is already set in your environment, the prompt is skipped. An existing `TOWER_WORKSPACE_ID` or `TOWER_API_ENDPOINT` is also inherited when using an organization workspace or a custom Seqera server. This follows [Seqera's CLI monitoring setup](https://docs.seqera.io/platform-cloud/getting-started/deployment-options).
+`scripts/submit.sh` asks for your Seqera access token with terminal echo disabled. Paste the token at that prompt; it is not written to a file or placed in the Nextflow command arguments. Both pipeline jobs inherit `TOWER_ACCESS_TOKEN` through Slurm and enable monitoring with `-with-tower`. If the variable is already set in your environment, the prompt is skipped. An existing `TOWER_WORKSPACE_ID` or `TOWER_API_ENDPOINT` is also inherited when using an organization workspace or a custom Seqera server. This follows [Seqera's CLI monitoring setup](https://docs.seqera.io/platform-cloud/getting-started/deployment-options).
 
-For submission without Seqera monitoring, leave `TOWER_ACCESS_TOKEN` unset and call `bash scripts/submit.sh` directly. No token belongs in this repository's tracked files.
+Submission uses only Bash, standard shell utilities and Slurm commands on the login node. It checks that all eighteen raw FASTQs exist and are nonempty; sample sheets are generated inside the jobs. No token belongs in this repository's tracked files.
 
 Defaults in [config/cluster.env](config/cluster.env):
 
@@ -88,7 +88,7 @@ The reference stage downloads approximately 1 GB of genome/GTF and the approxima
 
 The RNA-seq job verifies all 18 transferred SHA256s against the committed, flat-filename manifest before processing. Sample sheets are regenerated against the cluster files and checked for missing/empty mates. No glob is used to infer replicate groups. `logs/` contains driver logs; each pipeline keeps its own Nextflow state in `runs/rnaseq` or `runs/vast`.
 
-The driver requests 6 GB on `genoa64` with QOS `pipelines`, matching your local workflow wrapper. Tasks use Slurm with the wrapper's time-dependent QOS mapping, at most 16 CPUs / 128 GB / 7 days per task. The reference download job uses an 8-hour `normal` allocation. Modules are `Nextflow`, `Java` and `Singularity/4.0.2`; `NXF_VER=25.10.4` pins the Nextflow engine required by rnaseq 3.27.0. These site settings come from the local VAST clone; live module, QOS and account permissions were not queried.
+The driver requests 6 GB on `genoa64` with QOS `pipelines`, matching your local workflow wrapper. Tasks use Slurm with the wrapper's time-dependent QOS mapping, at most 16 CPUs / 128 GB / 7 days per task. The reference download job uses an 8-hour `normal` allocation. Inside the RNA-seq and VAST jobs, modules are `Nextflow`, `Java`, `Singularity/4.0.2` and `Python`. The Python helpers run with `python3 -I`, which ignores user Python environment variables and user site packages; no login-node Python or Conda interpreter is used by the submitter. The reference-download job does not require Python. `NXF_VER=25.10.4` pins the Nextflow engine required by rnaseq 3.27.0. These site settings come from the local VAST clone; the added generic `Python` module name and live module/QOS/account permissions were not queried.
 
 If a stage fails, fix the reported issue and resubmit that stage, then submit its dependent stage after it succeeds:
 
