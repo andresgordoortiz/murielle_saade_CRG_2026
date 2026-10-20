@@ -2,9 +2,23 @@
 set -euo pipefail
 stage=${1:-all}
 case "$stage" in
-    all|vast) ;;
-    *) echo 'Usage: bash scripts/submit.sh [all|vast]' >&2; exit 2 ;;
+    all|vast|betas) ;;
+    *) echo 'Usage: bash scripts/submit.sh [all|vast|betas]' >&2; exit 2 ;;
 esac
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+project=$PWD
+source config/cluster.env
+export RAW_DIR VAST_PIPELINE VASTDB BETAS_REPO SCRATCH_DIR REFERENCE_DIR
+if [[ $stage == betas ]]; then
+    test -s results/vast/inclusion_tables/murielle_saade_2026_INCLUSION_LEVELS_FULL-hg38.tab
+    if [[ ! -s $BETAS_REPO/scripts/run_R.sh ]]; then
+        echo "Missing existing betAS environment: $BETAS_REPO/scripts/run_R.sh" >&2
+        exit 1
+    fi
+    mkdir -p logs
+    exec sbatch --parsable --export=ALL --output="$project/logs/betas.%A_%a.log" \
+        scripts/run_betas.sbatch "$project"
+fi
 # Supply TOWER_ACCESS_TOKEN in the environment, or paste it at the hidden prompt.
 if [[ -z ${TOWER_ACCESS_TOKEN:-} ]]; then
     read -r -s -p 'Seqera access token: ' TOWER_ACCESS_TOKEN
@@ -15,10 +29,6 @@ if [[ -z $TOWER_ACCESS_TOKEN ]]; then
     exit 1
 fi
 export TOWER_ACCESS_TOKEN
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
-project=$PWD
-source config/cluster.env
-export RAW_DIR VAST_PIPELINE VASTDB SCRATCH_DIR REFERENCE_DIR
 test -s "$VAST_PIPELINE/main.nf"
 test -s "$VAST_PIPELINE/nextflow.config"
 test -s samples/SHA256SUMS

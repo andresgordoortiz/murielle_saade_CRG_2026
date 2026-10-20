@@ -11,6 +11,10 @@ bash scripts/submit.sh
 
 To rerun only VAST using completed RNA-seq trimmed reads: `bash scripts/submit.sh vast`.
 
+For betAS on the finished inclusion table: `bash scripts/submit.sh betas` (no Seqera token needed). This submits three independent array tasks: WT vs KO3, WT vs KO25 and KO3 vs KO25, each with one CPU, 64 GB and 48 hours. It reuses the installed R 4.5.2/betAS environment in `/users/aaljord/agordo/git/maria_MH_Adel_spire12ko_2026`; nothing is installed. Temporary files use scratch.
+
+betAS outputs are under `results/betas/CONTRAST/`: `all_events.csv`, `differential.csv`, `combination.csv`, filtered inputs and statistical checkpoints. Filtering requires complete PSI and N≥10 in each of that contrast's six samples; all event types are retained. Settings match the reference run: 500 points, 1,000 simulations, fixed seed, no coverage weighting. Positive delta means higher inclusion in the second group. Differential selection uses upstream `FDR`≤0.05 and |delta|≥0.10; combination adds Pdiff≥0.95. Upstream `FDR` is an empirical per-event false-positive rate, not BH-adjusted FDR. Resubmitting `betas` reuses completed stages after checking inputs/settings; `COMPLETE` marks finished CSV exports.
+
 The submitter uses Bash only. Paste the Seqera token at the hidden prompt; an existing `TOWER_ACCESS_TOKEN` skips the prompt. Jobs use the system `singularity` executable and load `Nextflow`, `Java` and `Python/3.12.3-GCCcore-13.2.0`.
 
 Inputs and paths:
