@@ -15,6 +15,8 @@ For betAS on the finished inclusion table: `bash scripts/submit.sh betas` (no Se
 
 betAS outputs are under `results/betas/CONTRAST/`: `all_events.csv`, `differential.csv`, `combination.csv`, filtered inputs and statistical checkpoints. Filtering requires complete PSI and N≥10 in each of that contrast's six samples; all event types are retained. Settings match the reference run: 500 points, 1,000 simulations, fixed seed, no coverage weighting. Positive delta means higher inclusion in the second group. Differential selection uses upstream `FDR`≤0.05 and |delta|≥0.10; combination adds Pdiff≥0.95. Upstream `FDR` is an empirical per-event false-positive rate, not BH-adjusted FDR. Resubmitting `betas` reuses completed stages after checking inputs/settings; `COMPLETE` marks finished CSV exports.
 
+Numeric PSI and finite, nonnegative inclusion/exclusion counts are validated before betAS filtering. Invalid/missing values are excluded and recorded in `excluded_invalid_values.tsv` and `filter_qc.csv`; the original inclusion table is unchanged.
+
 The submitter uses Bash only. Paste the Seqera token at the hidden prompt; an existing `TOWER_ACCESS_TOKEN` skips the prompt. Jobs use the system `singularity` executable and load `Nextflow`, `Java` and `Python/3.12.3-GCCcore-13.2.0`.
 
 Inputs and paths:

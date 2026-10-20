@@ -20,19 +20,29 @@ stopifnot(identical(names(raw)[1:6], annotation), !anyNA(raw$EVENT), !anyDuplica
 meta <- meta[meta$condition %in% groups, ]
 raw <- raw[, c(annotation, as.vector(rbind(meta$sample, paste0(meta$sample, '.Q'))))]
 events <- betAS::getEvents(raw, tool = 'vast-tools')
+psi <- events$PSI
+# A malformed PSI token makes read.delim import the entire sample column as text.
+psi[-(1:6)] <- lapply(psi[-(1:6)], function(x) suppressWarnings(as.numeric(x)))
+valid_psi <- rowSums(!is.finite(as.matrix(psi[-(1:6)])) |
+                    as.matrix(psi[-(1:6)]) < 0 | as.matrix(psi[-(1:6)]) > 100) == 0L
+coverage <- do.call(cbind, lapply(events$Qual[-(1:6)], function(q) {
+  format_ok <- !is.na(q) & grepl('^[^@]*@[^,@]+,[^,@]+$', q)
+  inc <- suppressWarnings(as.numeric(sub('.*@([^,]+),([^,]+)$', '\\1', q)))
+  exc <- suppressWarnings(as.numeric(sub('.*@([^,]+),([^,]+)$', '\\2', q)))
+  valid <- format_ok & is.finite(inc) & is.finite(exc) & inc >= 0 & exc >= 0
+  ifelse(valid, inc + exc, NA_real_)
+}))
+valid_coverage <- rowSums(!is.finite(coverage)) == 0L
+eligible <- valid_psi & valid_coverage
+if (!any(eligible)) stop('No events have valid PSI and coverage in all six samples')
+events$PSI <- psi[eligible, , drop = FALSE]
+events$Qual <- events$Qual[eligible, , drop = FALSE]
 filtered <- betAS::filterEvents(events, N = 10)
 psi <- filtered$PSI; qual <- filtered$Qual
 stopifnot(nrow(psi) > 0L, !anyNA(psi), identical(psi$EVENT, qual$EVENT),
           all(is.finite(as.matrix(psi[-(1:6)]))),
-          all(as.matrix(psi[-(1:6)]) >= 0 & as.matrix(psi[-(1:6)]) <= 100))
-coverage <- sapply(qual[-(1:6)], function(q) {
-  counts <- strsplit(sub('.*@', '', q), ',', fixed = TRUE)
-  stopifnot(all(lengths(counts) == 2L))
-  counts <- matrix(as.numeric(unlist(counts)), ncol = 2L, byrow = TRUE)
-  stopifnot(all(is.finite(counts)), all(counts >= 0))
-  rowSums(counts)
-})
-stopifnot(all(coverage >= 10))
+          all(as.matrix(psi[-(1:6)]) >= 0 & as.matrix(psi[-(1:6)]) <= 100),
+          identical(psi$EVENT, raw$EVENT[eligible & rowSums(coverage >= 10, na.rm = TRUE) == nrow(meta)]))
 out <- file.path(root, 'results/betas', contrast)
 identity <- list(input_md5 = unname(tools::md5sum(input)), metadata_md5 = unname(tools::md5sum(metadata)),
   script_md5 = unname(tools::md5sum(file.path(root, 'scripts/run_betas.R'))),
@@ -52,6 +62,12 @@ if (file.exists(run_file)) {
 }
 if (file.exists(file.path(out, 'COMPLETE'))) unlink(file.path(out, 'COMPLETE'))
 write.table(meta, file.path(out, 'samples.tsv'), sep = '\t', quote = FALSE, row.names = FALSE)
+write.table(data.frame(EVENT = raw$EVENT[!eligible],
+  reason = ifelse(!valid_psi[!eligible], 'invalid_or_missing_PSI', 'invalid_coverage')),
+  file.path(out, 'excluded_invalid_values.tsv'), sep = '\t', quote = FALSE, row.names = FALSE)
+write.csv(data.frame(input_events = nrow(raw), invalid_or_missing_PSI = sum(!valid_psi),
+  invalid_coverage = sum(!valid_coverage), retained_N10 = nrow(psi)),
+  file.path(out, 'filter_qc.csv'), row.names = FALSE)
 write.csv(as.data.frame(table(psi$COMPLEX)), file.path(out, 'retained_event_types.csv'), row.names = FALSE)
 atomic_rds(filtered, file.path(out, 'filtered.rds'))
 message(contrast, ': ', nrow(raw), ' input events; ', nrow(psi), ' pass N10 in all six samples')
